@@ -1,59 +1,50 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
+import { View, ActivityIndicator } from 'react-native';
+import { runMigrations } from '../src/storage/migrations';
+import { seedDatabase } from '../src/storage/seed';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
-
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+const theme = {
+  ...MD3DarkTheme,
+  colors: {
+    ...MD3DarkTheme.colors,
+    primary: '#50fa7b',
+    secondary: '#ff79c6',
+    tertiary: '#bd93f9',
+    background: '#1a1a2e',
+    surface: '#16213e',
+    surfaceVariant: '#0f3460',
+  },
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    async function init() {
+      await runMigrations();
+      await seedDatabase();
+      setReady(true);
     }
-  }, [loaded]);
+    init();
+  }, []);
 
-  if (!loaded) {
-    return null;
+  if (!ready) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a1a2e' }}>
+        <ActivityIndicator size="large" color="#50fa7b" />
+      </View>
+    );
   }
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
+    <PaperProvider theme={theme}>
+      <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="metronome/[id]" options={{ headerShown: true, title: '练习' }} />
+        <Stack.Screen name="exercise/[id]" options={{ headerShown: true, title: '练习详情' }} />
       </Stack>
-    </ThemeProvider>
+    </PaperProvider>
   );
 }

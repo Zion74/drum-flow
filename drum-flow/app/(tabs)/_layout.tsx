@@ -1,57 +1,53 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
-
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
-
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
+import { Tabs } from 'expo-router';
+import { useTheme } from 'react-native-paper';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const theme = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        headerShown: false,
+        tabBarStyle: { backgroundColor: theme.colors.surface, borderTopColor: '#333' },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: '#888',
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
+          title: '首页',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="home" size={size} color={color} />
           ),
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="exercises"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: '练习库',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="metronome" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="songs"
+        options={{
+          title: '打歌',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="music-note-eighth" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: '我的',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name="chart-line" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>
