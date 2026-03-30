@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { AudioPlayer, createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { SoundPreset } from '../exercises/types';
 
 export const SOUND_PRESETS: SoundPreset[] = [
@@ -7,7 +7,6 @@ export const SOUND_PRESETS: SoundPreset[] = [
   { id: 'classic', name: '经典', accentSound: 'classic_hi', normalSound: 'classic_lo' },
 ];
 
-// Static requires — Expo needs these at build time
 const SOUND_ASSETS: Record<string, any> = {
   woodblock_hi: require('../../assets/sounds/woodblock_hi.wav'),
   woodblock_lo: require('../../assets/sounds/woodblock_lo.wav'),
@@ -17,33 +16,33 @@ const SOUND_ASSETS: Record<string, any> = {
   classic_lo: require('../../assets/sounds/classic_lo.wav'),
 };
 
-const soundCache = new Map<string, Audio.Sound>();
+const playerCache = new Map<string, AudioPlayer>();
 
 export async function preloadSounds(preset: SoundPreset): Promise<void> {
-  await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
+  await setAudioModeAsync({ playsInSilentMode: true });
   for (const key of [preset.accentSound, preset.normalSound]) {
-    if (!soundCache.has(key)) {
-      const { sound } = await Audio.Sound.createAsync(SOUND_ASSETS[key]);
-      soundCache.set(key, sound);
+    if (!playerCache.has(key)) {
+      const player = createAudioPlayer(SOUND_ASSETS[key]);
+      playerCache.set(key, player);
     }
   }
 }
 
 export async function playSound(assetKey: string, volume: number = 1.0): Promise<void> {
-  const sound = soundCache.get(assetKey);
-  if (!sound) return;
+  const player = playerCache.get(assetKey);
+  if (!player) return;
   try {
-    await sound.setPositionAsync(0);
-    await sound.setVolumeAsync(Math.max(0, Math.min(1, volume)));
-    await sound.playAsync();
+    player.volume = Math.max(0, Math.min(1, volume));
+    await player.seekTo(0);
+    player.play();
   } catch {
-    // Ignore playback errors (e.g. sound unloaded mid-session)
+    // Ignore playback errors
   }
 }
 
 export async function unloadAllSounds(): Promise<void> {
-  for (const sound of soundCache.values()) {
-    await sound.unloadAsync();
+  for (const player of playerCache.values()) {
+    player.remove();
   }
-  soundCache.clear();
+  playerCache.clear();
 }
