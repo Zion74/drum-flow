@@ -1,0 +1,111 @@
+<h2>DrumFlow — 整体架构</h2>
+<p class="subtitle">React Native + Expo 模块化架构总览</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">项目结构</div>
+    <div class="mockup-body" style="font-family: monospace; font-size: 13px; line-height: 1.6; padding: 20px;">
+      <div style="color: #8be9fd;">drum-flow/</div>
+      <div style="padding-left: 20px;">
+        <div style="color: #6272a4;">├── app/                    <span style="color:#888"># Expo Router 页面</span></div>
+        <div style="padding-left: 40px; color: #f8f8f2;">
+          ├── (tabs)/             <span style="color:#888"># Tab 导航</span><br>
+          │   ├── index.tsx       <span style="color:#888"># 首页/今日计划</span><br>
+          │   ├── exercises.tsx   <span style="color:#888"># 练习库</span><br>
+          │   ├── songs.tsx       <span style="color:#888"># 打歌清单</span><br>
+          │   └── profile.tsx     <span style="color:#888"># 个人/统计</span><br>
+          ├── metronome/[id].tsx  <span style="color:#888"># 节拍器练习页</span><br>
+          └── exercise/[id].tsx   <span style="color:#888"># 练习详情页</span>
+        </div>
+        <div style="color: #6272a4; margin-top: 8px;">├── src/</div>
+        <div style="padding-left: 40px; color: #f8f8f2;">
+          ├── <span style="color:#50fa7b;">metronome/</span>        <span style="color:#888"># 节拍器引擎</span><br>
+          │   ├── engine.ts       <span style="color:#888"># 核心调度 (setInterval + 音频)</span><br>
+          │   ├── sounds.ts       <span style="color:#888"># 音色管理</span><br>
+          │   ├── modes.ts        <span style="color:#888"># 渐进加速 / 沉默测试</span><br>
+          │   └── hooks.ts        <span style="color:#888"># useMetronome() React Hook</span><br>
+          ├── <span style="color:#ff79c6;">exercises/</span>       <span style="color:#888"># 练习管理</span><br>
+          │   ├── presets.ts      <span style="color:#888"># 预设练习库</span><br>
+          │   ├── categories.ts   <span style="color:#888"># 分类定义</span><br>
+          │   └── types.ts        <span style="color:#888"># 类型定义</span><br>
+          ├── <span style="color:#ffb86c;">training/</span>        <span style="color:#888"># 训练计划</span><br>
+          │   ├── plans.ts        <span style="color:#888"># 预设计划模板</span><br>
+          │   ├── daily.ts        <span style="color:#888"># 每日计划生成</span><br>
+          │   └── progress.ts     <span style="color:#888"># 进度计算</span><br>
+          ├── <span style="color:#bd93f9;">songs/</span>           <span style="color:#888"># 打歌模块</span><br>
+          │   ├── types.ts        <span style="color:#888"># 歌曲类型</span><br>
+          │   └── tracker.ts      <span style="color:#888"># 进度追踪</span><br>
+          ├── <span style="color:#f1fa8c;">history/</span>         <span style="color:#888"># 数据记录</span><br>
+          │   ├── recorder.ts     <span style="color:#888"># 练习记录</span><br>
+          │   ├── bpm-history.ts  <span style="color:#888"># BPM 历史链接</span><br>
+          │   └── charts.ts       <span style="color:#888"># 进步曲线数据</span><br>
+          └── <span style="color:#8be9fd;">storage/</span>         <span style="color:#888"># 本地存储</span><br>
+              ├── database.ts     <span style="color:#888"># SQLite 初始化</span><br>
+              ├── schemas.ts      <span style="color:#888"># 表结构定义</span><br>
+              └── migrations.ts   <span style="color:#888"># 数据迁移</span>
+        </div>
+        <div style="color: #6272a4; margin-top: 8px;">├── components/            <span style="color:#888"># 共享 UI 组件</span></div>
+        <div style="color: #6272a4;">├── assets/sounds/         <span style="color:#888"># 节拍器音色文件</span></div>
+        <div style="color: #6272a4;">└── constants/             <span style="color:#888"># 全局常量</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <div class="mockup">
+    <div class="mockup-header">数据流</div>
+    <div class="mockup-body" style="padding: 24px; text-align: center;">
+      <div style="display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px;">
+        <div style="background: #50fa7b22; border: 1px solid #50fa7b; border-radius: 8px; padding: 12px 16px;">
+          <div style="font-weight: bold; color: #50fa7b;">节拍器引擎</div>
+          <div style="font-size: 12px; color: #888; margin-top: 4px;">BPM · 拍号 · 音色<br>渐进加速 · 沉默测试</div>
+        </div>
+        <div style="color: #888;">→</div>
+        <div style="background: #f1fa8c22; border: 1px solid #f1fa8c; border-radius: 8px; padding: 12px 16px;">
+          <div style="font-weight: bold; color: #f1fa8c;">练习会话</div>
+          <div style="font-size: 12px; color: #888; margin-top: 4px;">选择练习 → 加载上次BPM<br>→ 开始练习 → 记录结果</div>
+        </div>
+        <div style="color: #888;">→</div>
+        <div style="background: #8be9fd22; border: 1px solid #8be9fd; border-radius: 8px; padding: 12px 16px;">
+          <div style="font-weight: bold; color: #8be9fd;">SQLite 存储</div>
+          <div style="font-size: 12px; color: #888; margin-top: 4px;">练习记录 · BPM历史<br>歌曲进度 · 用户设置</div>
+        </div>
+        <div style="color: #888;">→</div>
+        <div style="background: #bd93f922; border: 1px solid #bd93f9; border-radius: 8px; padding: 12px 16px;">
+          <div style="font-weight: bold; color: #bd93f9;">统计 & 图表</div>
+          <div style="font-size: 12px; color: #888; margin-top: 4px;">BPM 进步曲线<br>练习时长统计 · 连续天数</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 24px;">
+  <h3>技术栈</h3>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+    <div style="background: #282a36; border-radius: 8px; padding: 12px;">
+      <div style="color: #50fa7b; font-weight: bold;">框架</div>
+      <div>React Native + Expo SDK 52</div>
+      <div>Expo Router (文件路由)</div>
+      <div>TypeScript</div>
+    </div>
+    <div style="background: #282a36; border-radius: 8px; padding: 12px;">
+      <div style="color: #ff79c6; font-weight: bold;">音频</div>
+      <div>expo-av (音频播放)</div>
+      <div>预加载音色文件</div>
+      <div>高精度定时器</div>
+    </div>
+    <div style="background: #282a36; border-radius: 8px; padding: 12px;">
+      <div style="color: #ffb86c; font-weight: bold;">存储</div>
+      <div>expo-sqlite (本地数据库)</div>
+      <div>Drizzle ORM (类型安全)</div>
+    </div>
+    <div style="background: #282a36; border-radius: 8px; padding: 12px;">
+      <div style="color: #bd93f9; font-weight: bold;">UI</div>
+      <div>React Native Paper / Tamagui</div>
+      <div>react-native-chart-kit (图表)</div>
+      <div>react-native-reanimated (动画)</div>
+    </div>
+  </div>
+</div>

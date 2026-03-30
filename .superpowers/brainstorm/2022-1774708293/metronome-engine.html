@@ -1,0 +1,113 @@
+<h2>节拍器引擎设计</h2>
+<p class="subtitle">DrumFlow 最核心的模块 — 三种训练模式 + BPM 历史链接</p>
+
+<div class="section">
+  <div class="mockup">
+    <div class="mockup-header">节拍器引擎架构</div>
+    <div class="mockup-body" style="padding: 24px;">
+      <div style="display: flex; flex-direction: column; gap: 16px; font-size: 14px;">
+
+        <!-- 核心引擎 -->
+        <div style="background: #50fa7b15; border: 2px solid #50fa7b; border-radius: 12px; padding: 16px;">
+          <div style="font-weight: bold; color: #50fa7b; font-size: 16px; margin-bottom: 8px;">MetronomeEngine (核心)</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+            <div style="background: #282a36; border-radius: 8px; padding: 10px;">
+              <div style="color: #8be9fd; font-weight: bold;">状态</div>
+              <div style="font-size: 12px; color: #ccc; margin-top: 4px;">
+                bpm: number (40-208)<br>
+                timeSignature: [beats, noteValue]<br>
+                currentBeat: number<br>
+                isPlaying: boolean<br>
+                soundPreset: SoundPreset
+              </div>
+            </div>
+            <div style="background: #282a36; border-radius: 8px; padding: 10px;">
+              <div style="color: #8be9fd; font-weight: bold;">调度器</div>
+              <div style="font-size: 12px; color: #ccc; margin-top: 4px;">
+                lookahead 调度模式<br>
+                scheduleAheadTime: 100ms<br>
+                预加载音频 buffer<br>
+                beat 回调通知 UI
+              </div>
+            </div>
+            <div style="background: #282a36; border-radius: 8px; padding: 10px;">
+              <div style="color: #8be9fd; font-weight: bold;">音色管理</div>
+              <div style="font-size: 12px; color: #ccc; margin-top: 4px;">
+                强拍音色 (accent)<br>
+                弱拍音色 (normal)<br>
+                预设: 木鱼/电子/经典<br>
+                音量独立控制
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 三种模式 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+          <div style="background: #ff79c615; border: 2px solid #ff79c6; border-radius: 12px; padding: 16px;">
+            <div style="font-weight: bold; color: #ff79c6; margin-bottom: 8px;">模式 1: 普通模式</div>
+            <div style="font-size: 12px; color: #ccc;">
+              固定 BPM 播放<br>
+              手动调节 BPM<br>
+              选择拍号<br>
+              选择音色<br><br>
+              <span style="color: #888;">最基础的节拍器功能</span>
+            </div>
+          </div>
+          <div style="background: #ffb86c15; border: 2px solid #ffb86c; border-radius: 12px; padding: 16px;">
+            <div style="font-weight: bold; color: #ffb86c; margin-bottom: 8px;">模式 2: 渐进加速</div>
+            <div style="font-size: 12px; color: #ccc;">
+              起始 BPM (用户设定)<br>
+              目标 BPM (上限)<br>
+              间隔时间: 15s / 30s / 60s<br>
+              增量: 1-5 BPM<br><br>
+              <span style="color: #ffb86c;">到达目标后自动停止</span><br>
+              <span style="color: #ffb86c;">UI 显示当前/目标进度条</span>
+            </div>
+          </div>
+          <div style="background: #bd93f915; border: 2px solid #bd93f9; border-radius: 12px; padding: 16px;">
+            <div style="font-weight: bold; color: #bd93f9; margin-bottom: 8px;">模式 3: 沉默测试</div>
+            <div style="font-size: 12px; color: #ccc;">
+              正常播放 N 小节<br>
+              随机静音 1-2 小节<br>
+              恢复播放<br>
+              用户自评: 跟上了 / 没跟上<br><br>
+              <span style="color: #bd93f9;">静音频率可调</span><br>
+              <span style="color: #bd93f9;">视觉提示: 静音时 UI 变化</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- BPM 历史链接 -->
+        <div style="background: #f1fa8c15; border: 2px solid #f1fa8c; border-radius: 12px; padding: 16px;">
+          <div style="font-weight: bold; color: #f1fa8c; font-size: 16px; margin-bottom: 8px;">BPM 历史链接</div>
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="flex: 1; font-size: 13px; color: #ccc;">
+              <div style="margin-bottom: 8px;">每个练习动作绑定独立的 BPM 记录：</div>
+              <div style="background: #282a36; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px;">
+                用户选择 "双击 开-闭-开"<br>
+                → 查询该动作最后一次成功 BPM: <span style="color: #50fa7b;">120</span><br>
+                → 节拍器自动设置为 <span style="color: #50fa7b;">120 BPM</span><br>
+                → 练习结束后记录新的成功 BPM<br>
+                → 下次打开自动加载 <span style="color: #50fa7b;">最新 BPM</span>
+              </div>
+            </div>
+            <div style="flex: 1; font-size: 13px; color: #ccc;">
+              <div style="margin-bottom: 8px;">存储结构：</div>
+              <div style="background: #282a36; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px;">
+                bpm_history {<br>
+                &nbsp;&nbsp;exercise_id: string<br>
+                &nbsp;&nbsp;bpm: number<br>
+                &nbsp;&nbsp;success: boolean<br>
+                &nbsp;&nbsp;mode: 'normal'|'accel'|'silent'<br>
+                &nbsp;&nbsp;timestamp: Date<br>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
