@@ -118,6 +118,13 @@ export async function runMigrations() {
     label TEXT
   )`);
 
+  await db.run(sql`CREATE TABLE IF NOT EXISTS exercise_patterns (
+    id TEXT PRIMARY KEY,
+    exercise_id TEXT NOT NULL REFERENCES exercises(id),
+    pattern_ids TEXT NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`);
+
   await db.run(sql`CREATE TABLE IF NOT EXISTS user_settings (
     id TEXT PRIMARY KEY,
     key TEXT NOT NULL UNIQUE,

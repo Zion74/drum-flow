@@ -1,17 +1,21 @@
 import { View, ScrollView, StyleSheet, Alert } from 'react-native';
 import { Text, Button, SegmentedButtons, IconButton, useTheme } from 'react-native-paper';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { db } from '../../src/storage/database';
-import { exercises } from '../../src/storage/schemas';
+import { exercises, exercisePatterns } from '../../src/storage/schemas';
 import { eq } from 'drizzle-orm';
 import { useMetronome } from '../../src/metronome/hooks';
 import { getLastSuccessBpm } from '../../src/history/bpm-history';
 import { recordSession } from '../../src/history/recorder';
 import { BpmControl } from '../../components/BpmControl';
-import { BeatVisualizer } from '../../components/BeatVisualizer';
+import { BeatPatternBar } from '../../components/BeatPatternBar';
+import { AccelProgressBar } from '../../components/AccelProgressBar';
+import { PatternSelectorModal } from '../../components/PatternSelectorModal';
 import { SOUND_PRESETS } from '../../src/metronome/sounds';
 import { TimeSignature } from '../../src/exercises/types';
+import { RhythmPattern, getPattern } from '../../src/metronome/patterns';
+import { nanoid } from 'nanoid';
 
 const TIME_SIGNATURES: { label: string; value: TimeSignature }[] = [
   { label: '2/4', value: [2, 4] },
@@ -29,6 +33,8 @@ export default function MetronomeScreen() {
   const [exerciseName, setExerciseName] = useState('练习');
   const [selectedTs, setSelectedTs] = useState('4/4');
   const [selectedSound, setSelectedSound] = useState(SOUND_PRESETS[0].id);
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const [selectorBeatIndex, setSelectorBeatIndex] = useState(0);
   const startTimeRef = useRef<number>(0);
   const startBpmRef = useRef<number>(0);
   const maxBpmRef = useRef<number>(0);
@@ -45,6 +51,15 @@ export default function MetronomeScreen() {
         setSelectedTs(`${ts[0]}/${ts[1]}`);
         const lastBpm = await getLastSuccessBpm(id);
         metronome.setBpm(lastBpm ?? ex.defaultBpm);
+
+        // Load saved beat patterns
+        const saved = await db.select().from(exercisePatterns)
+          .where(eq(exercisePatterns.exerciseId, id)).limit(1);
+        if (saved.length > 0) {
+          const ids: string[] = JSON.parse(saved[0].patternIds);
+          const patterns = ids.map(getPattern);
+          metronome.setBeatPatterns(patterns);
+        }
       }
     }
     load();
@@ -107,6 +122,50 @@ export default function MetronomeScreen() {
     }
   };
 
+  const savePatterns = useCallback(async (patterns: RhythmPattern[]) => {
+    if (!id) return;
+    const patternIds = JSON.stringify(patterns.map((p) => p.id));
+    const existing = await db.select().from(exercisePatterns)
+      .where(eq(exercisePatterns.exerciseId, id)).limit(1);
+    if (existing.length > 0) {
+      await db.update(exercisePatterns)
+        .set({ patternIds, updatedAt: new Date() })
+        .where(eq(exercisePatterns.exerciseId, id));
+    } else {
+      await db.insert(exercisePatterns).values({
+        id: nanoid(),
+        exerciseId: id,
+        patternIds,
+        updatedAt: new Date(),
+      });
+    }
+  }, [id]);
+
+  const handleBeatPress = (beatIndex: number) => {
+    setSelectorBeatIndex(beatIndex);
+    setSelectorVisible(true);
+  };
+
+  const handlePatternSelect = (pattern: RhythmPattern) => {
+    metronome.setBeatPattern(selectorBeatIndex, pattern);
+    // Save after update — read fresh state from engine next tick
+    const updated = [...metronome.state.beatPatterns];
+    updated[selectorBeatIndex] = pattern;
+    savePatterns(updated);
+  };
+
+  const handleSyncAll = () => {
+    metronome.syncAllToFirst();
+    const first = metronome.state.beatPatterns[0];
+    if (first) savePatterns(metronome.state.beatPatterns.map(() => first));
+  };
+
+  const handleResetAll = () => {
+    metronome.resetAllPatterns();
+    // After reset, all patterns are DEFAULT_PATTERN
+    savePatterns(metronome.state.beatPatterns.map(() => ({ id: 'quarter' } as RhythmPattern)));
+  };
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Stack.Screen
@@ -118,17 +177,48 @@ export default function MetronomeScreen() {
         }}
       />
 
-      <BeatVisualizer
-        beats={metronome.state.timeSignature[0]}
+      {/* Beat Pattern Editor */}
+      <BeatPatternBar
+        beatPatterns={metronome.state.beatPatterns}
         currentBeat={metronome.state.currentBeat}
+        currentSubTick={metronome.state.currentSubTick}
         isPlaying={metronome.state.isPlaying}
         isSilent={metronome.isSilent}
+        onBeatPress={handleBeatPress}
       />
+
+      {/* Quick actions: sync all / reset */}
+      <View style={styles.quickActions}>
+        <Button
+          mode="text"
+          compact
+          icon="content-copy"
+          onPress={handleSyncAll}
+          textColor="#888"
+          labelStyle={styles.quickLabel}
+        >
+          同步第一拍
+        </Button>
+        <Button
+          mode="text"
+          compact
+          icon="restore"
+          onPress={handleResetAll}
+          textColor="#888"
+          labelStyle={styles.quickLabel}
+        >
+          重置默认
+        </Button>
+      </View>
 
       <BpmControl
         bpm={metronome.state.bpm}
         onBpmChange={metronome.setBpm}
       />
+
+      {metronome.mode === 'accel' && metronome.accelProgress && (
+        <AccelProgressBar progress={metronome.accelProgress} />
+      )}
 
       <SegmentedButtons
         value={selectedTs}
@@ -202,12 +292,28 @@ export default function MetronomeScreen() {
           </Button>
         </View>
       )}
+
+      {/* Pattern Selector Modal */}
+      <PatternSelectorModal
+        visible={selectorVisible}
+        currentPatternId={metronome.state.beatPatterns[selectorBeatIndex]?.id ?? 'quarter'}
+        beatIndex={selectorBeatIndex}
+        onSelect={handlePatternSelect}
+        onClose={() => setSelectorVisible(false)}
+      />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16 },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  quickLabel: { fontSize: 12 },
   segment: { marginVertical: 6 },
   playRow: { alignItems: 'center', marginVertical: 8 },
   finishRow: { flexDirection: 'row', gap: 12, marginTop: 8, marginBottom: 32 },

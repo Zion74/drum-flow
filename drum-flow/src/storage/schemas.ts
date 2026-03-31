@@ -121,6 +121,15 @@ export const barItems = sqliteTable('bar_items', {
   label: text('label'),
 });
 
+// ============ Exercise Beat Patterns ============
+export const exercisePatterns = sqliteTable('exercise_patterns', {
+  id: text('id').primaryKey(),
+  exerciseId: text('exercise_id').notNull().references(() => exercises.id),
+  /** JSON array of pattern IDs, e.g. ["quarter","triplet","sixteenth-group","quarter"] */
+  patternIds: text('pattern_ids').notNull(),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull(),
+});
+
 // ============ User Settings ============
 export const userSettings = sqliteTable('user_settings', {
   id: text('id').primaryKey(),
