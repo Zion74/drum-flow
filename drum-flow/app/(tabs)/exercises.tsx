@@ -91,7 +91,7 @@ export default function ExercisesScreen() {
         renderItem={({ item }) => (
           <Card
             style={[styles.card, { backgroundColor: theme.colors.surface }]}
-            onPress={() => router.push(`/metronome/${item.id}` as any)}
+            onPress={() => router.push(`/exercise/${item.id}` as any)}
           >
             <Card.Content>
               <Text variant="titleMedium" style={{ color: '#fff' }}>{item.name}</Text>

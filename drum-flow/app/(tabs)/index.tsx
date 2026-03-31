@@ -82,6 +82,18 @@ export default function HomeScreen() {
       >
         开始练习
       </Button>
+
+      {/* Warmup entry */}
+      <Button
+        mode="outlined"
+        icon="run-fast"
+        style={styles.warmupBtn}
+        contentStyle={{ paddingVertical: 6 }}
+        textColor="#888"
+        onPress={() => router.push('/warmup' as any)}
+      >
+        热身方案
+      </Button>
     </ScrollView>
   );
 }
@@ -91,5 +103,6 @@ const styles = StyleSheet.create({
   header: { marginTop: 56, marginBottom: 24 },
   coreRow: { flexDirection: 'row', marginBottom: 16 },
   statsCard: { borderRadius: 12, marginBottom: 16 },
-  quickStart: { borderRadius: 12 },
+  quickStart: { borderRadius: 12, marginBottom: 8 },
+  warmupBtn: { borderRadius: 12, borderColor: '#333' },
 });
